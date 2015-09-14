@@ -7,6 +7,9 @@
     - name: Install openmpi-bin
       apt: name=openmpi-bin state=present
       sudo: yes
+    - name: Install openmpi dev to compile with mpicc
+      apt: name=openmpi-default-dev state=present
+      sudo: yes
 
 - hosts: master
   sudo: true
