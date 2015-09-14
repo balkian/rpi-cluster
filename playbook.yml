@@ -1,0 +1,39 @@
+---
+- hosts: all
+  tasks:
+    - name: Copy .ssh directory 
+      copy: src=ssh/ dest="/home/pi/.ssh/"
+      sudo: no
+    - name: Install openmpi-bin
+      apt: name=openmpi-bin state=present
+      sudo: yes
+
+- hosts: master
+  sudo: true
+  tasks:
+    - name: Install GlusterFS
+      apt: name=glusterfs-server state=present
+
+    - name: Assures /data/bricks/g1 exists
+      file: path=/data/bricks/g1 state=directory
+
+    - name: create gluster volume
+      gluster_volume: state=present name=shared brick='/data/bricks/g1' cluster={{ ansible_eth0.ipv4.address }} host={{ inventory_hostname }}
+      run_once: true
+
+    - name: start gluster volume
+      gluster_volume: state=started name=shared
+
+- hosts: all
+  sudo: true
+  tasks:
+    - name: Install GlusterFS Client
+      apt: name=glusterfs-client state=present
+
+    - name: Assures /data/shared exists
+      file: path=/data/shared state=directory
+
+    - name: Mount shared directory
+      mount: name=/data/shared src="{{ groups['master'][0] }}":/shared fstype=glusterfs state=mounted opts="defaults,nobootwait"
+    - name: Copy examples to /data/shared
+      copy:  src=examples dest=/data/shared/
